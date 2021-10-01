@@ -1,0 +1,21 @@
+[env]
+CLIENT_FOLDER = "disturb_client"
+SERVER_FOLDER = "disturb_server"
+
+[tasks.build-client]
+args = ["build", "--manifest-path", "./${CLIENT_FOLDER}/Cargo.toml", "--target", "wasm32-unknown-unknown"]
+command = "cargo"
+
+[tasks.bindgen]
+args = ["--no-typescript", "--out-dir", "dist", "--target ", "web", "./target/wasm32-unknown-unknown/debug/arugio_client.wasm"]
+command = "wasm-bindgen"
+
+[tasks.serve]
+args = ["dist"]
+command = "basic-http-server"
+dependencies = ["build-client", "bindgen"]
+
+[tasks.serve-pub]
+args = ["dist", "--addr", "0.0.0.0:5222"]
+command = "basic-http-server"
+dependencies = ["build-client", "bindgen"]

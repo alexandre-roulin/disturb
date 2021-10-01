@@ -1,0 +1,41 @@
+use disturb_shared::{
+    BallBundle, BallId, ClientMessage, Position, ServerMessage, TargetVelocity, Velocity,
+};
+use bevy::{math::vec3, prelude::*, render::camera::Camera};
+use bevy_networking_turbulence::{NetworkEvent, NetworkResource, NetworkingPlugin};
+use bevy_web_fullscreen::FullViewportPlugin;
+use std::{
+    collections::HashMap,
+    f32::consts::PI,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+};
+use turbulence::message_channels::ChannelMessage;
+
+struct LocalPlayer;
+
+fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    console_log::init_with_level(log::Level::Debug).expect("cannot initialize console_log");
+
+    App::build()
+        .add_plugins(bevy_webgl2::DefaultPlugins)
+        .add_plugin(NetworkingPlugin::default())
+        .add_plugin(FullViewportPlugin)
+        .add_startup_system(disturb_shared::network_channels_setup.system())
+        .add_startup_system(client_setup_system.system())
+        .add_system(keyboard_input_system.system())
+        .run();
+}
+
+fn client_setup_system(mut net: ResMut<NetworkResource>) {
+    let socket_address = "93.11.149.76:5222".parse().expect("cannot parse ip");
+    info!("Connecting to {}...", socket_address);
+    net.connect(socket_address);
+}
+
+fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>) {
+    let pressed = keyboard_input.get_just_pressed();
+    for key in pressed {
+        info!("Keyboard input: {:?}", key);
+    }
+}
