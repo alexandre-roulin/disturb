@@ -28,7 +28,7 @@ fn main() {
 }
 
 fn client_setup_system(mut net: ResMut<NetworkResource>) {
-    let socket_address = "93.11.149.76:5222".parse().expect("cannot parse ip");
+    let socket_address = "192.168.0.100:14191".parse().expect("cannot parse ip");
     info!("Connecting to {}...", socket_address);
     net.connect(socket_address);
 }

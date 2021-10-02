@@ -1,14 +1,10 @@
-use disturb_shared::{
-    BallBundle, BallId, ClientMessage, Position, ServerMessage, TargetVelocity, Velocity,
-};
 use bevy::{math::vec3, prelude::*, render::camera::Camera};
 use bevy_networking_turbulence::{NetworkEvent, NetworkResource, NetworkingPlugin};
 use bevy_web_fullscreen::FullViewportPlugin;
-use std::{
-    collections::HashMap,
-    f32::consts::PI,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+use disturb_shared::{
+    BallBundle, BallId, ClientMessage, Position, ServerMessage, TargetVelocity, Velocity,
 };
+use std::{collections::HashMap, f32::consts::PI};
 use turbulence::message_channels::ChannelMessage;
 
 struct LocalPlayer;
@@ -22,32 +18,32 @@ fn main() {
         .add_plugin(NetworkingPlugin::default())
         .add_plugin(FullViewportPlugin)
         .add_startup_system(disturb_shared::network_channels_setup.system())
-        .add_startup_system(setup_world_system.system())
+        // .add_startup_system(setup_world_system.system())
         .add_startup_system(client_setup_system.system())
-        .add_system(add_ball_mesh_system.system())
+        // .add_system(add_ball_mesh_system.system())
         .add_system(handle_network_events_system.system())
         .add_system(keyboard_input_system.system())
-        .add_system(handle_pointer_target_system.system())
-        .add_system(disturb_shared::update_velocity_system.system())
-        .add_system(disturb_shared::update_position_system.system())
-        .add_system(update_ball_translation_system.system())
-        .add_system(update_camera_translation_system.system())
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            read_component_channel_system::<Position>.system(),
-        )
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            read_component_channel_system::<TargetVelocity>.system(),
-        )
-        .add_system_to_stage(
-            CoreStage::PreUpdate,
-            read_server_message_channel_system.system(),
-        )
-        .add_system_to_stage(
-            CoreStage::PostUpdate,
-            broadcast_local_changes_system.system(),
-        )
+        // .add_system(handle_pointer_target_system.system())
+        // .add_system(disturb_shared::update_velocity_system.system())
+        // .add_system(disturb_shared::update_position_system.system())
+        // .add_system(update_ball_translation_system.system())
+        // .add_system(update_camera_translation_system.system())
+        // .add_system_to_stage(
+        //     CoreStage::PreUpdate,
+        //     read_component_channel_system::<Position>.system(),
+        // )
+        // .add_system_to_stage(
+        //     CoreStage::PreUpdate,
+        //     read_component_channel_system::<TargetVelocity>.system(),
+        // )
+        // .add_system_to_stage(
+        //     CoreStage::PreUpdate,
+        //     read_server_message_channel_system.system(),
+        // )
+        // .add_system_to_stage(
+        //     CoreStage::PostUpdate,
+        //     broadcast_local_changes_system.system(),
+        // )
         .run();
 }
 
@@ -84,16 +80,24 @@ fn setup_world_system(
 }
 
 fn client_setup_system(mut net: ResMut<NetworkResource>) {
-    let socket_address = "93.11.149.76:5224".parse().expect("cannot parse ip");
-
+    let socket_address = "93.11.149.76:5223".parse().expect("cannot parse ip");
     info!("Connecting to {}...", socket_address);
     net.connect(socket_address);
 }
 
-fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>) {
+fn keyboard_input_system(mut net: ResMut<NetworkResource>, keyboard_input: Res<Input<KeyCode>>) {
     let pressed = keyboard_input.get_just_pressed();
     for key in pressed {
-        info!("Keyboard input: {:?}", key);
+        if key == &KeyCode::Space {
+            let it = net.connections.iter().map(|c| *c.0).collect::<Vec<_>>();
+            info!("Connections {}", it.len());
+            net.broadcast_message(ServerMessage::SimpleMessage("COUCOU".to_owned()));
+        }
+        info!(
+            "Keyboard input: {:?} is space {}",
+            key,
+            key == &KeyCode::Space
+        );
     }
 }
 
@@ -151,6 +155,7 @@ fn read_server_message_channel_system(
                         }
                     }
                 }
+                ServerMessage::SimpleMessage(mesg) => log::info!("{}", mesg),
             }
         }
     }
@@ -166,12 +171,11 @@ fn handle_network_events_system(
                 Some(_connection) => {
                     info!("Connection successful");
 
-                    net.send_message(*handle, ClientMessage::Hello)
-                        .expect("Could not send hello");
+                    net.broadcast_message(ClientMessage::Hello);
                 }
                 None => panic!("Got packet for non-existing connection [{}]", handle),
             },
-            _ => {}
+            e => info!("Event {:?}", e),
         }
     }
 }
